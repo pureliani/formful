@@ -1,0 +1,37 @@
+{
+  "name": "@gapu/formful",
+  "module": "./dist/index.js",
+  "types": "dist/index.d.ts",
+  "version": "0.1.1",
+  "type": "module",
+  "description": "A fully type-safe form manager for react.js applications",
+  "keywords": [
+    "gapu",
+    "formful",
+    "formik"
+  ],
+  "scripts": {
+    "build": "tsup --dts",
+    "build:watch": "tsup --dts --watch"
+  },
+  "author": "Gabriel Pureliani",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/react": "^18.2.39",
+    "@types/use-sync-external-store": "^0.0.6",
+    "bun-types": "latest",
+    "react": "^18.2.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.2.2"
+  },
+  "peerDependencies": {
+    "zod": "*",
+    "react": ">=16.8.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "use-sync-external-store": "^1.2.0"
+  }
+}
