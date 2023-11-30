@@ -62,8 +62,11 @@ const getNestedValue = (obj: any, path: string[]): any => {
 
 const createStore = <
     Schema extends z.ZodTypeAny,
-    State extends z.infer<Schema>
->({ initialState, schema }: CreateStoreProps<State, Schema>) => {
+>({
+    initialState,
+    schema
+}: CreateStoreProps<z.infer<Schema>, Schema>) => {
+    type State = z.infer<Schema>
     let state = initialState;
     const parsed = schema.safeParse(initialState)
     let errors: z.ZodError<State> | null = parsed.success ? null : parsed.error
@@ -99,13 +102,12 @@ const typedMemo: <T>(c: T) => T = memo;
 
 export const createForm = <
     Schema extends z.ZodTypeAny,
-    State extends z.infer<Schema>
 >({
     schema,
     onSubmit,
     initialState
-}: CreateFormProps<State, Schema>) => {
-    type FuzzyState = z.infer<Schema>
+}: CreateFormProps<z.infer<Schema>, Schema>) => {
+    type State = z.infer<Schema>
     const store = createStore({ initialState, schema })
 
     const getErrorForPath = (errors: ZodError<State> | null, path: string[]): string[] => {
@@ -122,10 +124,10 @@ export const createForm = <
     const useField = <N extends Paths<State>>(name: N) => {
         const path = useMemo(() => name.split("."), [name])
         const errors = getErrorForPath(store.getErrors(), path);
-        const getSnap = useCallback(() => getNestedValue(store.getState(), path) as DeepValue<FuzzyState, N>, [path])
+        const getSnap = useCallback(() => getNestedValue(store.getState(), path) as DeepValue<State, N>, [path])
         const value = useSyncExternalStore(store.subscribe, getSnap, getSnap)
 
-        const setValue = (update: Update<DeepValue<FuzzyState, N>>) => {
+        const setValue = (update: Update<DeepValue<State, N>>) => {
             store.setState((prevState) => setNestedValue(prevState, path, update instanceof Function ? update : () => update));
         }
 
