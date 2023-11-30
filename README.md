@@ -1,11 +1,18 @@
-# @gapu/formful - A fully type-safe form manager for react.js applications
+## @gapu/formful - A fully type-safe form manager for react.js
 
 ### example usage
 ```ts
 import { createForm } from '@gapu/formful'
 import { z } from 'zod'
 
-const { submit, Field, useField, getState, getErrors, subscribe } = createForm({
+const { 
+  submit,
+  Field,
+  useField,
+  getState,
+  getErrors,
+  subscribe
+} = createForm({
   schema: z.object({
     a: z.object({
       b: z.object({
