@@ -1,5 +1,5 @@
 import { ZodError, z } from "zod"
-import { type ReactNode, memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim"
 
 export type OnSubmitProps<State> = {
@@ -138,7 +138,7 @@ export const createForm = <
 
     type FieldProps<N extends Paths<State>> = {
         name: N
-        children: (props: ReturnType<typeof useField<N>>) => ReactNode
+        children: (props: ReturnType<typeof useField<N>>) => JSX.Element
     }
     const Field = typedMemo(<N extends Paths<State>>({ name, children }: FieldProps<N>) => {
         const props = useField(name)
