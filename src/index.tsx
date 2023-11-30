@@ -3,7 +3,7 @@ import { type ReactNode, memo, useCallback, useMemo } from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim"
 
 export type OnSubmitProps<State> = {
-    data: State
+    state: State
     errors: ZodError<State> | null
 }
 
@@ -147,7 +147,7 @@ export const createForm = <
 
     const submit = () => {
         onSubmit({
-            data: store.getState(),
+            state: store.getState(),
             errors: store.getErrors()
         })
     }

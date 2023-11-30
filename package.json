@@ -17,10 +17,10 @@
   "author": "Gabriel Pureliani",
   "license": "MIT",
   "devDependencies": {
-    "@types/react": "^18.2.39",
+    "@types/react": "16.8.0",
     "@types/use-sync-external-store": "^0.0.6",
     "bun-types": "latest",
-    "react": "^18.2.0",
+    "react": "16.8.0",
     "tsup": "^8.0.1",
     "typescript": "^5.2.2"
   },
