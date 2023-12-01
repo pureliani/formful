@@ -38,9 +38,9 @@ export type DeepValue<T, Path extends string> = Path extends `${infer First}.${i
     ? T[Path]
     : never;
 
-const setNestedValue = <T,>(obj: T, path: string[], update: Update<any>): T => {
+const setNestedValue = <State,>(obj: State, path: string[], update: Update<State>): State => {
     if (path.length === 0) {
-        return update(obj);
+        return update instanceof Function ? update(obj) : update;
     }
     const [head, ...tail] = path;
     return {
@@ -128,7 +128,7 @@ export const createForm = <
 
         const setValue = useCallback((update: Update<DeepValue<State, N>>) => {
             store.setState((prevState) => setNestedValue(prevState, path, update));
-        }, [])
+        }, [path])
 
         return {
             errors,

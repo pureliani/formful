@@ -7,5 +7,5 @@ export default defineConfig({
     sourcemap: true,
     treeshake: true,
     clean: true,
-    external: ["react"]
+    external: ["react", "zod"]
 })
