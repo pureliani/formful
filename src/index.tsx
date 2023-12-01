@@ -75,9 +75,8 @@ const createStore = <
     const getErrors = () => errors;
     const subscribers = new Set<Subscriber>();
     const externalSubscribers = new Set<ExternalSubscriber<State>>();
-    type Update = (prev: State) => State
-    const setState = (update: Update) => {
-        state = update(state)
+    const setState = (update: Update<State>) => {
+        state = update instanceof Function ? update(state) : update
         const parsed = schema.safeParse(state)
         errors = parsed.success ? null : parsed.error
         subscribers.forEach((l) => l());
@@ -127,9 +126,9 @@ export const createForm = <
         const getSnap = useCallback(() => getNestedValue(store.getState(), path) as DeepValue<State, N>, [path])
         const value = useSyncExternalStore(store.subscribe, getSnap, getSnap)
 
-        const setValue = (update: Update<DeepValue<State, N>>) => {
-            store.setState((prevState) => setNestedValue(prevState, path, update instanceof Function ? update : () => update));
-        }
+        const setValue = useCallback((update: Update<DeepValue<State, N>>) => {
+            store.setState((prevState) => setNestedValue(prevState, path, update));
+        }, [])
 
         return {
             errors,
@@ -159,6 +158,7 @@ export const createForm = <
         Field,
         getErrors: store.getErrors,
         getState: store.getState,
+        setState: store.setState,
         subscribe: store.subscribeExternal,
         submit
     }
