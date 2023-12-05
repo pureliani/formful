@@ -38,7 +38,7 @@ const {
       }
     }
   },
-  onSubmit({ state, errors }) {
+  onSubmit({ state, errors, touchedFields }) {
     console.log({ state, errors })
   },
 })
@@ -47,7 +47,7 @@ const {
 ### example: useField
 ```tsx
 const InputF = () => {
-  const { value, setValue, errors } = useField('d.e.f');
+  const { value, setValue, errors, isTouched, setTouched } = useField(state => state.d.e.f);
   return (
     <div>
       <span>F: </span>
@@ -66,8 +66,8 @@ const InputF = () => {
 ```tsx
 const InputC = () => {
   return (
-    <Field name="a.b.c">
-      {({ value, setValue, errors }) => (
+    <Field selector={state => state.a.b.c}>
+      {({ value, setValue, errors, isTouched, setTouched }) => (
         <div>
           <span>C: </span>
           <input
@@ -92,7 +92,7 @@ const InputC = () => {
 
 ### example: subscribe
 ```tsx
-const unsubscribe = subscribe(({ state, errors }) => {
+const unsubscribe = subscribe(({ state, errors, touchedFields }) => {
   console.log("State has changed: ", state)
   console.log("Errors in the new state: ", errors)
 })
