@@ -1,26 +1,8 @@
-## @gapu/formful - A fully type-safe form manager for react.js
-
-### Install
-```bash
-$ npm i @gapu/formful
-```
-
-### example: createForm
-```ts
 import { createForm } from '@gapu/formful';
 import { z } from 'zod';
 
-const { 
-  submit, 
-  Field, 
-  useField, 
-  getErrors, 
-  getState, 
-  setState, 
-  getTouchedFields, 
-  setTouchedFields, 
-  subscribe 
-} = createForm({
+const { submit, Field, useField } =
+  createForm({
     schema: z.object({
       a: z.object({
         b: z.object({
@@ -49,10 +31,7 @@ const {
       console.log({ state, errors, touchedFields });
     },
   });
-```
 
-### example: useField
-```tsx
 const InputC = () => {
   const { value, setValue, errors, isTouched, setIsTouched } = useField(state => state.a.b.c)
 
@@ -76,11 +55,8 @@ const InputC = () => {
       )}
     </div>
   );
-}
-```
+};
 
-### example: Field
-```tsx
 const InputF = () => {
   return (
     <Field selector={state => state.d.e.f}>
@@ -100,13 +76,21 @@ const InputF = () => {
       )}
     </Field>
   );
-}
-```
+};
 
-### example: subscribe
-```tsx
-const unsubscribe = subscribe(({ state, errors, touchedFields }) => {
-  console.log("State has changed: ", state)
-  console.log("Errors in the new state: ", errors)
-})
-```
+export const App = () => {
+  return (
+    <div>
+      <InputC />
+      <div style={{ marginBlock: 50 }} />
+      <InputF />
+      <button
+        onClick={() => {
+          submit();
+        }}
+      >
+        Submit
+      </button>
+    </div>
+  );
+};
