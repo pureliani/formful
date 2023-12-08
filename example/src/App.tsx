@@ -46,6 +46,7 @@ const InputC = () => {
           const asNumber = Number(e.target.value)
           if (isNaN(asNumber)) {
             alert("Input was not a number")
+            return
           }
           setValue(asNumber)
         }}
