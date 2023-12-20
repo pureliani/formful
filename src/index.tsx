@@ -128,6 +128,10 @@ export const createForm = <
         return matchingErrors.map(error => error.message);
     };
 
+    const setFieldValue = <R,>(selector: Selector<State, R>, update: Update<R>) => {
+        store.setState((prevState) => setNestedValue(prevState, track(selector), update));
+    }
+
     const useField = <R,>(selector: Selector<State, R>) => {
         const path = track(selector)
         const joinedPath = path.join(".")
@@ -138,7 +142,7 @@ export const createForm = <
         const isTouched = useSyncExternalStore(touchedStore.subscribe, getTouchedSnap, getTouchedSnap)
 
         const setValue = useCallback((update: Update<R>) => {
-            store.setState((prevState) => setNestedValue(prevState, path, update));
+            setFieldValue(selector, update)
         }, [joinedPath])
 
         const setIsTouched = useCallback((update: Update<boolean>) => {
@@ -186,6 +190,7 @@ export const createForm = <
 
     return {
         useField,
+        setFieldValue,
         Field,
         getErrors,
         getTouchedFields: touchedStore.getState,

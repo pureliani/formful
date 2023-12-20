@@ -5,96 +5,83 @@
 $ npm i @gapu/formful
 ```
 
-### example: createForm
+### Example - createForm
 ```ts
 import { createForm } from '@gapu/formful';
 import { z } from 'zod';
 
-const { 
-  submit, 
-  Field, 
-  useField, 
-  getErrors, 
-  getState, 
-  setState, 
-  getTouchedFields, 
-  setTouchedFields, 
-  subscribe 
+const {
+  useField,
+  Field,
+  submit,
+  setState,
+  setFieldValue,
+  getState,
+  getErrors,
+  getTouchedFields,
+  setTouchedFields,
+  subscribe,
 } = createForm({
-    schema: z.object({
-      a: z.object({
-        b: z.object({
-          c: z.number().min(2).nullable(),
-        }),
-      }),
-      d: z.object({
-        e: z.object({
-          f: z.string().min(2),
-        }),
-      }),
-    }),
-    initialState: {
-      a: {
-        b: {
-          c: 0,
-        },
-      },
-      d: {
-        e: {
-          f: '',
-        },
-      },
-    },
-    async onSubmit({ state, errors, touchedFields }) {
-      console.log({ state, errors, touchedFields });
-    },
-  });
+  schema: z.object({
+    username: z.string().min(1, "Username is required"),
+    email: z.string().email("Invalid email"),
+    contactPhones: z.array(z.string().min(1, "Invalid contact phone"))
+  }),
+  initialState: {
+    email: "",
+    username: "",
+    contactPhones: [""]
+  },
+  async onSubmit({ state, errors, touchedFields }) {
+    console.log({ state, errors, touchedFields });
+  },
+});
 ```
 
-### example: useField
+### Example - useField
 ```tsx
-const InputC = () => {
-  const { value, setValue, errors, isTouched, setIsTouched } = useField(state => state.a.b.c)
+const UsernameField = () => {
+  const { value, setValue, errors, isTouched, setIsTouched } = useField(state => state.username)
 
   return (
     <div>
-      <span>F: </span>
+      <label htmlFor='username'>Username </label>
+      <br />
       <input
+        id='username'
         type="text"
         value={value ?? 0}
         onBlur={() => setIsTouched(true)}
-        onChange={(e) => {
-          const asNumber = Number(e.target.value)
-          if (isNaN(asNumber)) {
-            alert("Input was not a number")
-          }
-          setValue(asNumber)
-        }}
+        onChange={(e) => setValue(e.target.value)}
       />
+      <br />
       {isTouched && errors.length > 0 && (
-        <h3 style={{ color: 'crimson' }}>Errors for C: {errors}</h3>
+        <label htmlFor='username' style={{ color: 'crimson' }}>{errors}</label>
       )}
     </div>
   );
-}
+};
 ```
 
-### example: Field
+### Example - Field
 ```tsx
-const InputF = () => {
+const EmailField = () => {
   return (
-    <Field selector={state => state.d.e.f}>
+    <Field selector={state => state.email}>
       {({ value, setValue, errors, isTouched, setIsTouched }) => (
         <div>
-          <span>F: </span>
+          <label htmlFor='email'>Email </label>
+          <br />
           <input
-            type="text"
+            id='email'
+            type="email"
             value={value ?? 0}
             onBlur={() => setIsTouched(true)}
             onChange={(e) => setValue(e.target.value)}
           />
+          <br />
           {isTouched && errors.length > 0 && (
-            <h3 style={{ color: 'crimson' }}>Errors for F: {errors}</h3>
+            <label htmlFor='email' style={{ color: 'crimson' }}>{errors}</label>
           )}
         </div>
       )}
@@ -103,10 +90,157 @@ const InputF = () => {
 }
 ```
 
-### example: subscribe
+### Example - Arrays
+> [!CAUTION]
+> When mapping over an array, make sure to use the index as a key!
+
+```tsx
+const ContactPhone = ({ index }: { index: number }) => {
+  return (
+    <Field selector={state => state.contactPhones[index]}>
+      {({ value, setValue, errors, isTouched, setIsTouched }) => (
+        <li>
+          <label htmlFor='email'>Phone #{index + 1} </label>
+          <br />
+          <input
+            id='email'
+            type="email"
+            value={value ?? 0}
+            onBlur={() => setIsTouched(true)}
+            onChange={(e) => setValue(e.target.value)}
+          />
+          <button
+            onClick={() => {
+              setFieldValue(state => state.contactPhones, prev => [...prev, ""])
+            }}>
+            + ADD
+          </button>
+          <button
+            onClick={() => {
+              setFieldValue(state => state.contactPhones, prev => prev.filter(v => v !== value))
+            }}>
+            - DELETE
+          </button>
+          <br />
+          {isTouched && errors.length > 0 && (
+            <label htmlFor='email' style={{ color: 'crimson' }}>{errors}</label>
+          )}
+        </li>
+      )}
+    </Field>
+  )
+}
+
+const ContactPhones = () => {
+  return (
+    <Field selector={state => state.contactPhones}>
+      {({ value, setValue }) => (
+        <div>
+          <h4>Contact phones</h4>
+          <ul>
+            {value.map((_, index) => (
+              <ContactPhone 
+                key={index} // THIS IS IMPORTANT!
+                index={index}
+              />
+            )}
+          </ul>
+          <button onClick={() => setValue(prev => [...prev, ""])}>+ ADD</button>
+        </div>
+      )}
+    </Field>
+  );
+}
+```
+
+### Example - submit
+> [!NOTE]
+> `submit` function is returned from the "createForm" call
+
+```tsx
+export const App = () => {
+  return (
+    <div>
+      <UsernameField />
+      <br />
+      <EmailField />
+      <br />
+      <ContactPhones />
+      <br />
+      <button onClick={submit}>
+        Submit
+      </button>
+    </div>
+  );
+};
+```
+
+### Example - setState
+```tsx
+setState({
+  username: "pureliani",
+  email: "invalid@gmailcom"
+})
+// or
+setState((prevState) => ({
+  username: "pureliani",
+  email: "valid@gmail.com"
+}))
+```
+
+### Example - setFieldValue
+```tsx
+setFieldValue(state => state.email, "example@gmail.com")
+// or
+setFieldValue(state => state.email, prevValue => prevValue + "something")
+```
+
+### Example - getState
+```tsx
+const state = getState()
+// {
+//   username: "",
+//   email: "example@gmail.comsomething"
+// }
+```
+
+### Example - getErrors
+> [!TIP]
+> `errors` will be null when the form is completely valid
+
+```tsx
+const errors = getErrors()
+// z.ZodError | null
+```
+
+### Example - setTouchedFields
+> [!TIP]
+> if you'd like to set some deeply nested field to touched, you would use "dot chain" syntax e.g:
+> ["a.b.0.c"]
+
+```tsx
+setTouchedFields(["email", "username"])
+// or
+setTouchedFields(prev => [...prev, "email", "username"])
+```
+
+### Example - getTouchedFields
+> [!TIP]
+> if the form is nested, the returned value will be an array of "dot chained" strings, e.g:
+> ["a.b.0.c"]
+
+```tsx
+const touchedFields = getTouchedFields()
+// ["email", "username"]
+```
+
+### Example - subscribe
 ```tsx
 const unsubscribe = subscribe(({ state, errors, touchedFields }) => {
-  console.log("State has changed: ", state)
-  console.log("Errors in the new state: ", errors)
+  console.log("state", state)
+  console.log("errors", errors)
+  console.log("touchedFields", touchedFields)
 })
+// later...
+unsubscribe()
 ```
