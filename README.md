@@ -100,11 +100,11 @@ const ContactPhone = ({ index }: { index: number }) => {
     <Field selector={state => state.contactPhones[index]}>
       {({ value, setValue, errors, isTouched, setIsTouched }) => (
         <li>
-          <label htmlFor='email'>Phone #{index + 1} </label>
+          <label htmlFor={`contactPhone-${index}`}>Phone #{index + 1} </label>
           <br />
           <input
-            id='email'
-            type="email"
+            id={`contactPhone-${index}`}
+            type="text"
             value={value ?? 0}
             onBlur={() => setIsTouched(true)}
             onChange={(e) => setValue(e.target.value)}
@@ -179,12 +179,14 @@ export const App = () => {
 ```tsx
 setState({
   username: "pureliani",
-  email: "invalid@gmailcom"
+  email: "invalid@gmailcom",
+  contactPhones: [""]
 })
 // or
 setState((prevState) => ({
   username: "pureliani",
-  email: "valid@gmail.com"
+  email: "valid@gmail.com",
+  contactPhones: [...prevState.contactPhones, ""]
 }))
 ```
 
@@ -200,8 +202,9 @@ setFieldValue(state => state.email, prevValue => prevValue + "something")
 const state = getState()
 // {
 //   username: "",
-//   email: "example@gmail.comsomething"
-// }
+//   email: "example@gmail.comsomething",
+//   contactPhones: [""]
+// }  
 ```
 
 ### Example - getErrors
@@ -219,9 +222,9 @@ const errors = getErrors()
 > ["a.b.0.c"]
 
 ```tsx
-setTouchedFields(["email", "username"])
+setTouchedFields(["email", "username", "contactPhones.0"])
 // or
-setTouchedFields(prev => [...prev, "email", "username"])
+setTouchedFields(prev => [...prev, "email", "username", "contactPhones.0"])
 ```
 
 ### Example - getTouchedFields
@@ -231,7 +234,7 @@ setTouchedFields(prev => [...prev, "email", "username"])
 
 ```tsx
 const touchedFields = getTouchedFields()
-// ["email", "username"]
+// ["email", "username", "contactPhones.0"]
 ```
 
 ### Example - subscribe
