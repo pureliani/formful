@@ -4,9 +4,19 @@ import { z } from 'zod';
 const {
   useField,
   Field,
-  submit,
+  getErrors,
+  getState,
+  setState,
+  getTouchedFields,
+  setTouchedFields,
   setFieldValue,
+  subscribe,
+  submit,
+  reset,
+  reinitialize,
+  wasModified,
 } = createForm({
+  storageKey: "abc",
   schema: z.object({
     username: z.string().min(1, "Username is required"),
     email: z.string().email("Invalid email"),
@@ -23,8 +33,7 @@ const {
 });
 
 const UsernameField = () => {
-  const { value, setValue, errors, isTouched, setIsTouched } = useField(state => state.username)
-
+  const { value, setValue, errors, isTouched, setIsTouched, wasModified } = useField(state => state.username)
   return (
     <div>
       <label htmlFor='username'>Username </label>
@@ -40,6 +49,7 @@ const UsernameField = () => {
       {isTouched && errors.length > 0 && (
         <label htmlFor='username' style={{ color: 'crimson' }}>{errors}</label>
       )}
+      Was modified: {wasModified() ? "yes" : "no"}
     </div>
   );
 };
@@ -90,7 +100,7 @@ const ContactPhone = ({ index }: { index: number }) => {
           </button>
           <button
             onClick={() => {
-              setFieldValue(state => state.contactPhones, prev => prev.filter(v => v !== value))
+              setFieldValue(state => state.contactPhones, prev => prev.filter((_,i) => i !== index))
             }}>
             - DELETE
           </button>
@@ -121,6 +131,8 @@ const ContactPhones = () => {
 }
 
 export const App = () => {
+  console.log(wasModified())
+  
   return (
     <div>
       <UsernameField />
@@ -131,6 +143,12 @@ export const App = () => {
       <br />
       <button onClick={submit}>
         Submit
+      </button>
+      <button onClick={reset}>
+        Reset
+      <button onClick={() => reinitialize({ email: "help@gmail.com", contactPhones: [], username: "bababooey" })}>
+        Reinitialize
+      </button>
       </button>
     </div>
   );
