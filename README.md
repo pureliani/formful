@@ -45,23 +45,18 @@ const {
 ### Example - useField
 ```tsx
 const UsernameField = () => {
-  const { value, setValue, errors, isTouched, setIsTouched, wasModified } = useField(state => state.username)
+  const { 
+    value, 
+    setValue, 
+    errors,
+    isTouched, 
+    setIsTouched, 
+    wasModified
+  } = useField(state => state.username)
 
   return (
     <div>
-      <label htmlFor='username'>Username </label>
-      <br />
-      <input
-        id='username'
-        type="text"
-        value={value ?? 0}
-        onBlur={() => setIsTouched(true)}
-        onChange={(e) => setValue(e.target.value)}
-      />
-      <br />
-      {isTouched && errors.length > 0 && (
-        <label htmlFor='username' style={{ color: 'crimson' }}>{errors}</label>
-      )}
+      ...
     </div>
   );
 };
@@ -72,21 +67,16 @@ const UsernameField = () => {
 const EmailField = () => {
   return (
     <Field selector={state => state.email}>
-      {({ value, setValue, errors, isTouched, setIsTouched, wasModified }) => (
+      {({ 
+        value, 
+        setValue, 
+        errors, 
+        isTouched, 
+        setIsTouched, 
+        wasModified 
+      }) => (
         <div>
-          <label htmlFor='email'>Email </label>
-          <br />
-          <input
-            id='email'
-            type="email"
-            value={value ?? 0}
-            onBlur={() => setIsTouched(true)}
-            onChange={(e) => setValue(e.target.value)}
-          />
-          <br />
-          {isTouched && errors.length > 0 && (
-            <label htmlFor='email' style={{ color: 'crimson' }}>{errors}</label>
-          )}
+          ...
         </div>
       )}
     </Field>
@@ -155,6 +145,14 @@ const ContactPhones = () => {
     </Field>
   );
 }
+```
+
+### Example - reinitialize
+A function used to reinitialize the state of the form, [wasModified](#example---wasmodified) will compare the current state to the initial state, which in this case would be whatever is passed to `reinitialize`. 
+
+```tsx 
+const { reinitialize } = createForm({ ... });
+reinitialize(...)
 ```
 
 ### Example - storageKey
@@ -260,7 +258,7 @@ setTouchedFields(prev => [...prev, "email", "username", "contactPhones.0"])
 > ["a.b.0.c"]
 
 ```tsx
-const { setTouchedFields } = createForm({ ... });
+const { getTouchedFields } = createForm({ ... });
 
 // usage
 const touchedFields = getTouchedFields()
