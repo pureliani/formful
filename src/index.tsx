@@ -1,6 +1,10 @@
 import { ZodError, z } from "zod"
-import { memo, useCallback } from "react";
+import { useCallback } from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim"
+import { equals } from "./equals";
+import { createStore } from "./createStore";
+import { track } from "./track";
+import { typedMemo } from "./typedMemo";
 
 export type OnSubmitProps<State> = {
     state: State
@@ -17,24 +21,12 @@ export type CreateFormProps<State, Schema> = {
     initialState: State
     schema: Schema
     onSubmit: (props: OnSubmitProps<State>) => Promise<void> | void
+    storageKey?: string
 }
 
 export type Update<S> = S | ((state: S) => S)
 export type Subscriber<S> = (state: S) => void
 export type Selector<S, R> = (state: S) => R
-
-const track = <S, R>(selector: Selector<S, R>): string[] => {
-    const path: string[] = []
-    const handler: ProxyHandler<any> = {
-        get(_, p) {
-            path.push(p as string)
-            return new Proxy({}, handler)
-        }
-    }
-    const proxy = new Proxy({}, handler)
-    selector(proxy)
-    return path
-}
 
 const setNestedValue = <State,>(obj: State, path: string[], update: Update<State>): State => {
     if (path.length === 0) {
@@ -70,39 +62,33 @@ const getNestedValue = (obj: any, path: string[]): any => {
     return getNestedValue(obj[head], tail);
 }
 
-const createStore = <State,>(initialState: State) => {
-    let state = initialState;
-    const getState = () => state;
-    const subscribers = new Set<Subscriber<State>>();
-    const setState = (update: Update<State>) => {
-        state = update instanceof Function ? update(state) : update
-        subscribers.forEach((l) => l(getState()));
-    };
-
-    const subscribe = (s: Subscriber<State>) => {
-        subscribers.add(s);
-        return () => subscribers.delete(s);
-    };
-
-    return { getState, setState, subscribe };
-};
-
-const typedMemo: <A, B>(a: A, B: B) => A = memo;
-
 export const createForm = <
     Schema extends z.ZodSchema,
 >({
     schema,
     onSubmit,
+    storageKey,
     initialState
 }: CreateFormProps<z.infer<Schema>, Schema>) => {
     type State = z.infer<Schema>
-    const store = createStore(initialState)
+    const storedState = !!localStorage && !!storageKey  ? localStorage.getItem(storageKey) : null
+
+    let store = createStore(storedState ? JSON.parse(storedState) as State : initialState)
+    let _initialState = initialState
+
+    const reinitialize = (state: State) => {
+        _initialState = state
+        store.setState(state)
+    }
+
+    const reset = () => store.setState(_initialState)
+
+    const wasModified = () => !equals(_initialState, store.getState())
     const touchedStore = createStore<string[]>([])
     const parsed = schema.safeParse(initialState)
     let errors: z.ZodError<State> | null = parsed.success ? null : parsed.error
     const getErrors = () => errors;
-
+  
     type ExternalSubscriberArgs = { state: State; errors: z.ZodError<State> | null; touchedFields: string[] }
 
     const externalSubscribers = new Set<Subscriber<ExternalSubscriberArgs>>();
@@ -110,6 +96,10 @@ export const createForm = <
         const parsed = schema.safeParse(state)
         errors = parsed.success ? null : parsed.error
         externalSubscribers.forEach(listener => listener({ state, errors, touchedFields: touchedStore.getState() }))
+        
+        if(!!storageKey && !!localStorage) {
+            localStorage.setItem(storageKey, JSON.stringify(state))
+        }
     })
 
     const subscribeExternal = (s: Subscriber<ExternalSubscriberArgs>) => {
@@ -140,11 +130,11 @@ export const createForm = <
         const getTouchedSnap = useCallback(() => touchedStore.getState().includes(joinedPath), [joinedPath])
         const value = useSyncExternalStore(store.subscribe, getSnap, getSnap)
         const isTouched = useSyncExternalStore(touchedStore.subscribe, getTouchedSnap, getTouchedSnap)
+        const wasModified = useCallback(() => !equals(selector(_initialState), value), [value]) 
 
         const setValue = useCallback((update: Update<R>) => {
             setFieldValue(selector, update)
         }, [joinedPath])
-
         const setIsTouched = useCallback((update: Update<boolean>) => {
             touchedStore.setState((prevState) => {
                 const prev = prevState.includes(joinedPath)
@@ -164,6 +154,7 @@ export const createForm = <
             isTouched,
             setIsTouched,
             errors,
+            wasModified
         }
     }
 
@@ -193,6 +184,9 @@ export const createForm = <
         setFieldValue,
         Field,
         getErrors,
+        wasModified,
+        reinitialize,
+        reset,
         getTouchedFields: touchedStore.getState,
         setTouchedFields: touchedStore.setState,
         getState: store.getState,

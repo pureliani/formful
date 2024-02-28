@@ -13,15 +13,19 @@ import { z } from 'zod';
 const {
   useField,
   Field,
-  submit,
-  setState,
-  setFieldValue,
-  getState,
   getErrors,
+  getState,
+  setState,
   getTouchedFields,
   setTouchedFields,
+  setFieldValue,
   subscribe,
+  submit,
+  reset,
+  reinitialize,
+  wasModified,
 } = createForm({
+  storageKey: "abc",
   schema: z.object({
     username: z.string().min(1, "Username is required"),
     email: z.string().email("Invalid email"),
@@ -41,7 +45,7 @@ const {
 ### Example - useField
 ```tsx
 const UsernameField = () => {
-  const { value, setValue, errors, isTouched, setIsTouched } = useField(state => state.username)
+  const { value, setValue, errors, isTouched, setIsTouched, wasModified } = useField(state => state.username)
 
   return (
     <div>
@@ -68,7 +72,7 @@ const UsernameField = () => {
 const EmailField = () => {
   return (
     <Field selector={state => state.email}>
-      {({ value, setValue, errors, isTouched, setIsTouched }) => (
+      {({ value, setValue, errors, isTouched, setIsTouched, wasModified }) => (
         <div>
           <label htmlFor='email'>Email </label>
           <br />
@@ -117,7 +121,7 @@ const ContactPhone = ({ index }: { index: number }) => {
           </button>
           <button
             onClick={() => {
-              setFieldValue(state => state.contactPhones, prev => prev.filter(v => v !== value))
+              setFieldValue(state => state.contactPhones, prev => prev.filter((_, i) => i !== index))
             }}>
             - DELETE
           </button>
@@ -153,30 +157,41 @@ const ContactPhones = () => {
 }
 ```
 
-### Example - submit
-> [!NOTE]
-> `submit` function is returned from the "createForm" call
+### Example - storageKey
+An optional parameter of createForm which will be used to persist the form state in localStorage
 
-```tsx
-export const App = () => {
-  return (
-    <div>
-      <UsernameField />
-      <br />
-      <EmailField />
-      <br />
-      <ContactPhones />
-      <br />
-      <button onClick={submit}>
-        Submit
-      </button>
-    </div>
-  );
-};
+```tsx 
+const { wasModified } = createForm({ 
+  storageKey: "some-local-storage-key", 
+  ... 
+});
+```
+
+### Example - wasModified
+A function which returns a boolean indicating whether the form has been modified as compared to the initial state
+
+```tsx 
+const { wasModified } = createForm({ ... });
+
+// usage
+console.log(wasModified())
+```
+
+### Example - submit
+Calls the onSubmit callback with values, errors and touchedFields.
+( onSubmit will be invoked even if the form is invalid, you should check for errors inside onSubmit )
+
+```tsx 
+const { submit } = createForm({ ... });
+// usage
+submit()
 ```
 
 ### Example - setState
 ```tsx
+const { setState } = createForm({ ... });
+
+// usage
 setState({
   username: "pureliani",
   email: "invalid@gmailcom",
@@ -192,6 +207,9 @@ setState((prevState) => ({
 
 ### Example - setFieldValue
 ```tsx
+const { setFieldValue } = createForm({ ... });
+
+// usage
 setFieldValue(state => state.email, "example@gmail.com")
 // or
 setFieldValue(state => state.email, prevValue => prevValue + "something")
@@ -199,6 +217,9 @@ setFieldValue(state => state.email, prevValue => prevValue + "something")
 
 ### Example - getState
 ```tsx
+const { getState } = createForm({ ... });
+
+// usage
 const state = getState()
 // {
 //   username: "",
@@ -212,6 +233,9 @@ const state = getState()
 > `errors` will be null when the form is completely valid
 
 ```tsx
+const { getErrors } = createForm({ ... });
+
+// usage
 const errors = getErrors()
 // z.ZodError | null
 ```
@@ -222,6 +246,9 @@ const errors = getErrors()
 > ["a.b.0.c"]
 
 ```tsx
+const { setTouchedFields } = createForm({ ... });
+
+// usage
 setTouchedFields(["email", "username", "contactPhones.0"])
 // or
 setTouchedFields(prev => [...prev, "email", "username", "contactPhones.0"])
@@ -233,12 +260,18 @@ setTouchedFields(prev => [...prev, "email", "username", "contactPhones.0"])
 > ["a.b.0.c"]
 
 ```tsx
+const { setTouchedFields } = createForm({ ... });
+
+// usage
 const touchedFields = getTouchedFields()
 // ["email", "username", "contactPhones.0"]
 ```
 
 ### Example - subscribe
 ```tsx
+const { subscribe } = createForm({ ... });
+
+// usage
 const unsubscribe = subscribe(({ state, errors, touchedFields }) => {
   console.log("state", state)
   console.log("errors", errors)

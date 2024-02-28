@@ -15,8 +15,8 @@
     "formik"
   ],
   "scripts": {
-    "build": "tsup --dts",
-    "build:watch": "tsup --dts --watch"
+    "build": "tsup",
+    "build:watch": "tsup --watch"
   },
   "author": "Gabriel Pureliani",
   "license": "MIT",

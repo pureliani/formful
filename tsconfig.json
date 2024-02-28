@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "lib": [
-      "ESNext"
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
     ],
     "module": "esnext",
     "target": "esnext",
@@ -9,7 +11,6 @@
     "moduleDetection": "force",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "composite": true,
     "strict": true,
     "downlevelIteration": true,
     "skipLibCheck": true,
@@ -17,9 +18,6 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
-    "types": [
-      "bun-types" // add Bun global
-    ]
+    "allowJs": true
   }
 }
