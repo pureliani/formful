@@ -9,6 +9,7 @@ const {
   setState,
   getTouchedFields,
   setTouchedFields,
+  useIsSubmitting,
   setFieldValue,
   subscribe,
   submit,
@@ -28,6 +29,7 @@ const {
     contactPhones: [""]
   },
   async onSubmit({ state, errors, touchedFields }) {
+    await new Promise((res)=> setTimeout(res, 1000))
     console.log({ state, errors, touchedFields });
   },
 });
@@ -131,8 +133,7 @@ const ContactPhones = () => {
 }
 
 export const App = () => {
-  console.log(wasModified())
-  
+
   return (
     <div>
       <UsernameField />
@@ -146,9 +147,9 @@ export const App = () => {
       </button>
       <button onClick={reset}>
         Reset
+      </button>
       <button onClick={() => reinitialize({ email: "help@gmail.com", contactPhones: [], username: "bababooey" })}>
         Reinitialize
-      </button>
       </button>
     </div>
   );

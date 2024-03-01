@@ -16,6 +16,7 @@ const {
   getErrors,
   getState,
   setState,
+  useIsSubmitting,
   getTouchedFields,
   setTouchedFields,
   setFieldValue,
@@ -147,6 +148,13 @@ const ContactPhones = () => {
 }
 ```
 
+### Example - useIsSubmitting
+A hook which indicates if the form is currently being submitted 
+
+```tsx 
+const { useIsSubmitting } = createForm({ ... });
+```
+
 ### Example - reinitialize
 A function used to reinitialize the state of the form, [wasModified](#example---wasmodified) will compare the current state to the initial state, which in this case would be whatever is passed to `reinitialize`. 
 
@@ -159,7 +167,7 @@ reinitialize(...)
 An optional parameter of createForm which will be used to persist the form state in localStorage
 
 ```tsx 
-const { wasModified } = createForm({ 
+const { ... } = createForm({ 
   storageKey: "some-local-storage-key", 
   ... 
 });

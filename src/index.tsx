@@ -20,7 +20,7 @@ export type CreateStoreProps<State, Schema> = {
 export type CreateFormProps<State, Schema> = {
     initialState: State
     schema: Schema
-    onSubmit: (props: OnSubmitProps<State>) => Promise<void> | void
+    onSubmit: (props: OnSubmitProps<State>) => Promise<void>
     storageKey?: string
 }
 
@@ -82,7 +82,6 @@ export const createForm = <
     }
 
     const reset = () => store.setState(_initialState)
-
     const wasModified = () => !equals(_initialState, store.getState())
     const touchedStore = createStore<string[]>([])
     const parsed = schema.safeParse(initialState)
@@ -120,6 +119,12 @@ export const createForm = <
 
     const setFieldValue = <R,>(selector: Selector<State, R>, update: Update<R>) => {
         store.setState((prevState) => setNestedValue(prevState, track(selector), update));
+    }
+
+    const isSubmitting = createStore(false)
+
+    const useIsSubmitting = () => {
+        return useSyncExternalStore(isSubmitting.subscribe, isSubmitting.getState, isSubmitting.getState)
     }
 
     const useField = <R,>(selector: Selector<State, R>) => {
@@ -172,11 +177,12 @@ export const createForm = <
     })
 
     const submit = () => {
+        isSubmitting.setState(true)
         onSubmit({
             state: store.getState(),
             errors: getErrors(),
             touchedFields: touchedStore.getState()
-        })
+        }).finally(() => isSubmitting.setState(false))
     }
 
     return {
@@ -187,6 +193,8 @@ export const createForm = <
         wasModified,
         reinitialize,
         reset,
+        useIsSubmitting,
+        isSubmitting: isSubmitting.getState,
         getTouchedFields: touchedStore.getState,
         setTouchedFields: touchedStore.setState,
         getState: store.getState,
