@@ -50,8 +50,8 @@ const UsernameField = () => {
     value, 
     setValue, 
     errors,
-    isTouched, 
-    setIsTouched, 
+    wasTouched, 
+    setWasTouched, 
     wasModified
   } = useField(state => state.username)
 
@@ -72,8 +72,8 @@ const EmailField = () => {
         value, 
         setValue, 
         errors, 
-        isTouched, 
-        setIsTouched, 
+        wasTouched, 
+        setWasTouched, 
         wasModified 
       }) => (
         <div>
@@ -93,7 +93,7 @@ const EmailField = () => {
 const ContactPhone = ({ index }: { index: number }) => {
   return (
     <Field selector={state => state.contactPhones[index]}>
-      {({ value, setValue, errors, isTouched, setIsTouched }) => (
+      {({ value, setValue, errors, wasTouched, setWasTouched }) => (
         <li>
           <label htmlFor={`contactPhone-${index}`}>Phone #{index + 1} </label>
           <br />
@@ -101,7 +101,7 @@ const ContactPhone = ({ index }: { index: number }) => {
             id={`contactPhone-${index}`}
             type="text"
             value={value ?? 0}
-            onBlur={() => setIsTouched(true)}
+            onBlur={() => setWasTouched(true)}
             onChange={(e) => setValue(e.target.value)}
           />
           <button
@@ -117,7 +117,7 @@ const ContactPhone = ({ index }: { index: number }) => {
             - DELETE
           </button>
           <br />
-          {isTouched && errors.length > 0 && (
+          {wasTouched && errors.length > 0 && (
             <label htmlFor='email' style={{ color: 'crimson' }}>{errors}</label>
           )}
         </li>

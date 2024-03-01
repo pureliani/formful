@@ -134,13 +134,13 @@ export const createForm = <
         const getSnap = useCallback(() => getNestedValue(store.getState(), path) as R, [joinedPath])
         const getTouchedSnap = useCallback(() => touchedStore.getState().includes(joinedPath), [joinedPath])
         const value = useSyncExternalStore(store.subscribe, getSnap, getSnap)
-        const isTouched = useSyncExternalStore(touchedStore.subscribe, getTouchedSnap, getTouchedSnap)
+        const wasTouched = useSyncExternalStore(touchedStore.subscribe, getTouchedSnap, getTouchedSnap)
         const wasModified = useCallback(() => !equals(selector(_initialState), value), [value]) 
 
         const setValue = useCallback((update: Update<R>) => {
             setFieldValue(selector, update)
         }, [joinedPath])
-        const setIsTouched = useCallback((update: Update<boolean>) => {
+        const setWasTouched = useCallback((update: Update<boolean>) => {
             touchedStore.setState((prevState) => {
                 const prev = prevState.includes(joinedPath)
                 const next = update instanceof Function ? update(prev) : update
@@ -156,8 +156,8 @@ export const createForm = <
         return {
             value,
             setValue,
-            isTouched,
-            setIsTouched,
+            wasTouched,
+            setWasTouched,
             errors,
             wasModified
         }

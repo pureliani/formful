@@ -33,9 +33,9 @@ const {
     console.log({ state, errors, touchedFields });
   },
 });
-
+setTouchedFields("")
 const UsernameField = () => {
-  const { value, setValue, errors, isTouched, setIsTouched, wasModified } = useField(state => state.username)
+  const { value, setValue, errors, wasTouched, setWasTouched, wasModified } = useField(state => state.username)
   return (
     <div>
       <label htmlFor='username'>Username </label>
