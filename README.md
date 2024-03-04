@@ -13,48 +13,56 @@ import { z } from 'zod';
 const {
   useField,
   Field,
-  getErrors,
+  focus,
   getState,
   setState,
-  useIsSubmitting,
-  getTouchedFields,
-  setTouchedFields,
+  getMetaState,
+  setMetaState,
   setFieldValue,
+  getErrors,
+  isSubmitting,
+  useIsSubmitting,
   subscribe,
   submit,
-  reset,
-  reinitialize,
-  wasModified,
 } = createForm({
   storageKey: "abc",
   schema: z.object({
-    username: z.string().min(1, "Username is required"),
-    email: z.string().email("Invalid email"),
-    contactPhones: z.array(z.string().min(1, "Invalid contact phone"))
+    a: z.object({
+      b: z.object({
+        c: z.string()
+      })
+    }),
+    d: z.object({
+      e: z.object({
+        f: z.string()
+      })
+    }),
+    numbers: z.array(z.number()),
+    focusable: z.string()
   }),
   initialState: {
-    email: "",
-    username: "",
-    contactPhones: [""]
+    a: {b: {c: ""}},
+    d: {e: {f: ""}},
+    numbers: [],
+    focusable: ""
   },
-  async onSubmit({ state, errors, touchedFields }) {
-    console.log({ state, errors, touchedFields });
+  async onSubmit({ state, errors }) {
+    console.log({ state, errors });
   },
 });
 ```
 
 ### Example - useField
 ```tsx
-const UsernameField = () => {
+const FieldC = () => {
   const { 
-    value, 
-    setValue, 
+    value,
+    setValue,
     errors,
-    wasTouched, 
-    setWasTouched, 
-    wasModified
-  } = useField(state => state.username)
-
+    meta,
+    setMeta, 
+    focus 
+  } = useField(state => state.a.b.c)
   return (
     <div>
       ...
@@ -65,16 +73,16 @@ const UsernameField = () => {
 
 ### Example - Field
 ```tsx
-const EmailField = () => {
+const FieldF = () => {
   return (
-    <Field selector={state => state.email}>
+    <Field selector={state => state.d.e.f}>
       {({ 
-        value, 
-        setValue, 
-        errors, 
-        wasTouched, 
-        setWasTouched, 
-        wasModified 
+        value,
+        setValue,
+        errors,
+        meta,
+        setMeta, 
+        focus 
       }) => (
         <div>
           ...
@@ -90,35 +98,39 @@ const EmailField = () => {
 > When mapping over an array, make sure to use the index as a key!
 
 ```tsx
-const ContactPhone = ({ index }: { index: number }) => {
+const NumberListItem = ({ index }: { index: number }) => {
   return (
-    <Field selector={state => state.contactPhones[index]}>
-      {({ value, setValue, errors, wasTouched, setWasTouched }) => (
+    <Field selector={state => state.numbers[index]}>
+      {({ 
+        value,
+        setValue,
+        errors,
+        meta,
+        setMeta, 
+        focus 
+      }) => (
         <li>
-          <label htmlFor={`contactPhone-${index}`}>Phone #{index + 1} </label>
-          <br />
-          <input
-            id={`contactPhone-${index}`}
-            type="text"
-            value={value ?? 0}
-            onBlur={() => setWasTouched(true)}
-            onChange={(e) => setValue(e.target.value)}
+          <input type="text"
+           value={value} 
+           onChange={e => {
+              if(/^\d+(\.\d+)?$/.test(e.target.value)) {
+                setValue(Number(e.target.value))
+              } else {
+                setValue(e.target.value as unknown as number)
+              }
+           }} 
+           onBlur={() => setMeta({touched: true})}
           />
-          <button
-            onClick={() => {
-              setFieldValue(state => state.contactPhones, prev => [...prev, ""])
-            }}>
-            + ADD
+          <button onClick={() => {
+            setFieldValue(
+              state => state.numbers, 
+              prev => prev.filter((_, i) => i !== index)
+            )
+          }}>
+            Delete
           </button>
-          <button
-            onClick={() => {
-              setFieldValue(state => state.contactPhones, prev => prev.filter((_, i) => i !== index))
-            }}>
-            - DELETE
-          </button>
-          <br />
-          {wasTouched && errors.length > 0 && (
-            <label htmlFor='email' style={{ color: 'crimson' }}>{errors}</label>
+          {meta?.touched && errors.length > 0 && (
+            <label style={{ color: 'crimson' }}>{errors}</label>
           )}
         </li>
       )}
@@ -126,21 +138,20 @@ const ContactPhone = ({ index }: { index: number }) => {
   )
 }
 
-const ContactPhones = () => {
+const NumberList = () => {
   return (
-    <Field selector={state => state.contactPhones}>
+    <Field selector={state => state.numbers} >
       {({ value, setValue }) => (
         <div>
-          <h4>Contact phones</h4>
           <ul>
             {value.map((_, index) => (
-              <ContactPhone 
+              <NumberListItem 
                 key={index} // THIS IS IMPORTANT!
                 index={index}
               />
-            )}
+            ))}
           </ul>
-          <button onClick={() => setValue(prev => [...prev, ""])}>+ ADD</button>
+          <button onClick={() => setValue(prev => [...prev, 0])}>+ ADD</button>
         </div>
       )}
     </Field>
@@ -155,14 +166,6 @@ A hook which indicates if the form is currently being submitted
 const { useIsSubmitting } = createForm({ ... });
 ```
 
-### Example - reinitialize
-A function used to reinitialize the state of the form, [wasModified](#example---wasmodified) will compare the current state to the initial state, which in this case would be whatever is passed to `reinitialize`. 
-
-```tsx 
-const { reinitialize } = createForm({ ... });
-reinitialize(...)
-```
-
 ### Example - storageKey
 An optional parameter of createForm which will be used to persist the form state in localStorage
 
@@ -171,16 +174,6 @@ const { ... } = createForm({
   storageKey: "some-local-storage-key", 
   ... 
 });
-```
-
-### Example - wasModified
-A function which returns a boolean indicating whether the form has been modified as compared to the initial state
-
-```tsx 
-const { wasModified } = createForm({ ... });
-
-// usage
-console.log(wasModified())
 ```
 
 ### Example - submit
@@ -246,31 +239,60 @@ const errors = getErrors()
 // z.ZodError | null
 ```
 
-### Example - setTouchedFields
-> [!TIP]
-> if you'd like to set some deeply nested field to touched, you would use "dot chain" syntax e.g:
-> ["a.b.0.c"]
-
+### Example - setMetaState
 ```tsx
-const { setTouchedFields } = createForm({ ... });
+const { setMetaState } = createForm({ ... });
 
 // usage
-setTouchedFields(["email", "username", "contactPhones.0"])
+setMetaState({
+  "a.b.c": {
+    touched: false,
+    dirty: false,
+    disabled: false,
+    visible: false,
+    loading: false,
+    required: false,
+  },
+   "d.e.f": {
+    touched: false,
+    dirty: false,
+    disabled: false,
+    visible: false,
+    loading: false,
+    required: false,
+  },
+  ...
+})
 // or
-setTouchedFields(prev => [...prev, "email", "username", "contactPhones.0"])
+setTouchedFields(prev => ({
+  ...prev,
+    "a.b.c": {
+    touched: false,
+    dirty: false,
+    disabled: false,
+    visible: false,
+    loading: false,
+    required: false,
+  },
+   "d.e.f": {
+    touched: false,
+    dirty: false,
+    disabled: false,
+    visible: false,
+    loading: false,
+    required: false,
+  },
+}))
 ```
 
-### Example - getTouchedFields
-> [!TIP]
-> if the form is nested, the returned value will be an array of "dot chained" strings, e.g:
-> ["a.b.0.c"]
-
+### Example - getMetaState
 ```tsx
-const { getTouchedFields } = createForm({ ... });
+const { getMetaState } = createForm({ ... });
 
 // usage
-const touchedFields = getTouchedFields()
-// ["email", "username", "contactPhones.0"]
+const metaState = getTouchedFields()
+console.log(metaState['a.b.c'])
+console.log(metaState['d.e.f'])
 ```
 
 ### Example - subscribe
@@ -285,4 +307,37 @@ const unsubscribe = subscribe(({ state, errors, touchedFields }) => {
 })
 // later...
 unsubscribe()
+```
+
+
+### Example - focus
+> [!NOTE]
+> for this to work, `onFocus` should be passed to the useField as shown in example. 
+
+```tsx
+const Focusable = () => {
+  const ref = useRef<HTMLInputElement | null>(null)
+  const { value, setValue } = useField(state => state.focusable, {
+    onFocus() {
+      ref.current?.focus()
+    },
+  })
+
+  return (
+    <input 
+      type="text" 
+      ref={ref} 
+      value={value}
+      onChange={e => setValue(e.target.value)}
+    />
+  )
+}
+
+const SomeOtherComponent = () => {
+  ...
+  const onFocusFocusable = () => {
+    focus(state => state.focusable)
+  }
+  ...
+}
 ```

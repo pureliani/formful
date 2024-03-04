@@ -1,114 +1,125 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { createForm } from '@gapu/formful';
+import { useRef } from 'react';
 import { z } from 'zod';
 
 const {
   useField,
   Field,
-  getErrors,
+  focus,
   getState,
   setState,
-  getTouchedFields,
-  setTouchedFields,
-  useIsSubmitting,
+  getMetaState,
+  setMetaState,
   setFieldValue,
+  getErrors,
+  isSubmitting,
+  useIsSubmitting,
   subscribe,
   submit,
-  reset,
-  reinitialize,
-  wasModified,
 } = createForm({
   storageKey: "abc",
   schema: z.object({
-    username: z.string().min(1, "Username is required"),
-    email: z.string().email("Invalid email"),
-    contactPhones: z.array(z.string().min(1, "Invalid contact phone"))
+    a: z.object({
+      b: z.object({
+        c: z.string()
+      })
+    }),
+    d: z.object({
+      e: z.object({
+        f: z.string()
+      })
+    }),
+    numbers: z.array(z.number()),
+    focusable: z.string()
   }),
   initialState: {
-    email: "",
-    username: "",
-    contactPhones: [""]
+    a: {b: {c: ""}},
+    d: {e: {f: ""}},
+    numbers: [],
+    focusable: ""
   },
-  async onSubmit({ state, errors, touchedFields }) {
-    await new Promise((res)=> setTimeout(res, 1000))
-    console.log({ state, errors, touchedFields });
+  async onSubmit({ state, errors }) {
+    console.log({ state, errors });
   },
 });
-setTouchedFields("")
-const UsernameField = () => {
-  const { value, setValue, errors, wasTouched, setWasTouched, wasModified } = useField(state => state.username)
+
+const FieldC = () => {
+  const { value, setValue, errors, meta, setMeta, focus } = useField(state => state.a.b.c)
   return (
     <div>
-      <label htmlFor='username'>Username </label>
-      <br />
+      <label>Field C </label>
       <input
-        id='username'
         type="text"
         value={value ?? 0}
-        onBlur={() => setIsTouched(true)}
+        onBlur={() => setMeta({
+          touched: true
+        })}
         onChange={(e) => setValue(e.target.value)}
       />
       <br />
-      {isTouched && errors.length > 0 && (
-        <label htmlFor='username' style={{ color: 'crimson' }}>{errors}</label>
+      {meta?.touched && errors.length > 0 && (
+        <label style={{ color: 'crimson' }}>{errors}</label>
       )}
-      Was modified: {wasModified() ? "yes" : "no"}
     </div>
   );
 };
 
-const EmailField = () => {
+const FieldF = () => {
+  const { value, setValue, errors, meta, setMeta, focus } = useField(state => state.d.e.f)
   return (
-    <Field selector={state => state.email}>
-      {({ value, setValue, errors, isTouched, setIsTouched }) => (
-        <div>
-          <label htmlFor='email'>Email </label>
-          <br />
-          <input
-            id='email'
-            type="email"
-            value={value ?? 0}
-            onBlur={() => setIsTouched(true)}
-            onChange={(e) => setValue(e.target.value)}
-          />
-          <br />
-          {isTouched && errors.length > 0 && (
-            <label htmlFor='email' style={{ color: 'crimson' }}>{errors}</label>
-          )}
-        </div>
+    <div>
+      <label>Field F </label>
+      <input
+        type="text"
+        value={value ?? 0}
+        onBlur={() => setMeta({
+          touched: true
+        })}
+        onChange={(e) => setValue(e.target.value)}
+      />
+      <br />
+      {meta?.touched && errors.length > 0 && (
+        <label style={{ color: 'crimson' }}>{errors}</label>
       )}
-    </Field>
+    </div>
   );
-}
+};
 
-const ContactPhone = ({ index }: { index: number }) => {
+
+const NumberListItem = ({ index }: { index: number }) => {
   return (
-    <Field selector={state => state.contactPhones[index]}>
-      {({ value, setValue, errors, isTouched, setIsTouched }) => (
+    <Field selector={state => state.numbers[index]}>
+      {({ 
+        value,
+        setValue,
+        errors,
+        meta,
+        setMeta, 
+        focus 
+      }) => (
         <li>
-          <label htmlFor='email'>Phone #{index + 1} </label>
-          <br />
-          <input
-            id='email'
-            type="email"
-            value={value ?? 0}
-            onBlur={() => setIsTouched(true)}
-            onChange={(e) => setValue(e.target.value)}
+          <input type="text"
+           value={value} 
+           onChange={e => {
+              if(/^\d+(\.\d+)?$/.test(e.target.value)) {
+                setValue(Number(e.target.value))
+              } else {
+                setValue(e.target.value as unknown as number)
+              }
+           }} 
+           onBlur={() => setMeta({touched: true})}
           />
-          <button
-            onClick={() => {
-              setFieldValue(state => state.contactPhones, prev => [...prev, ""])
-            }}>
-            + ADD
+          <button onClick={() => {
+            setFieldValue(
+              state => state.numbers, 
+              prev => prev.filter((_, i) => i !== index)
+            )
+          }}>
+            Delete
           </button>
-          <button
-            onClick={() => {
-              setFieldValue(state => state.contactPhones, prev => prev.filter((_,i) => i !== index))
-            }}>
-            - DELETE
-          </button>
-          <br />
-          {isTouched && errors.length > 0 && (
-            <label htmlFor='email' style={{ color: 'crimson' }}>{errors}</label>
+          {meta?.touched && errors.length > 0 && (
+            <label style={{ color: 'crimson' }}>{errors}</label>
           )}
         </li>
       )}
@@ -116,40 +127,61 @@ const ContactPhone = ({ index }: { index: number }) => {
   )
 }
 
-const ContactPhones = () => {
+const NumberList = () => {
   return (
-    <Field selector={state => state.contactPhones}>
+    <Field selector={state => state.numbers} >
       {({ value, setValue }) => (
         <div>
-          <h4>Contact phones</h4>
           <ul>
-            {value.map((_, index) => <ContactPhone key={index} index={index} />)}
+            {value.map((_, index) => (
+              <NumberListItem 
+                key={index} // THIS IS IMPORTANT!
+                index={index}
+              />
+            ))}
           </ul>
-          <button onClick={() => setValue(prev => [...prev, ""])}>+ ADD</button>
+          <button onClick={() => setValue(prev => [...prev, 0])}>+ ADD</button>
         </div>
       )}
     </Field>
   );
 }
 
+const Focusable = () => {
+  const ref = useRef<HTMLInputElement | null>(null)
+  const { value, setValue } = useField(state=> state.focusable, {
+    onFocus() {
+      ref.current?.focus()
+    },
+  })
+
+  return (
+    <input 
+      type="text" 
+      ref={ref} 
+      value={value}
+      onChange={e => setValue(e.target.value)}
+    />
+  )
+}
+
+setTimeout(() => {
+  focus(state => state.focusable)
+})
+
 export const App = () => {
 
   return (
     <div>
-      <UsernameField />
+      <FieldC />
       <br />
-      <EmailField />
+      <FieldF />
       <br />
-      <ContactPhones />
+      <Focusable />
       <br />
+      <NumberList />
       <button onClick={submit}>
         Submit
-      </button>
-      <button onClick={reset}>
-        Reset
-      </button>
-      <button onClick={() => reinitialize({ email: "help@gmail.com", contactPhones: [], username: "bababooey" })}>
-        Reinitialize
       </button>
     </div>
   );

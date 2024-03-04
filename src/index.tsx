@@ -1,15 +1,23 @@
-import { ZodError, z } from "zod"
-import { useCallback } from "react";
+import { type ZodError, z } from "zod"
+import { useCallback, useEffect, memo } from "react";
 import { useSyncExternalStore } from "use-sync-external-store/shim"
-import { equals } from "./equals";
-import { createStore } from "./createStore";
-import { track } from "./track";
-import { typedMemo } from "./typedMemo";
+
+export type FieldMetaProps = {
+    touched?: boolean
+    dirty?: boolean
+    disabled?: boolean
+    visible?: boolean
+    loading?: boolean
+    required?: boolean
+}
+
+export type FieldOptions = {
+    onFocus?: () => void
+}
 
 export type OnSubmitProps<State> = {
     state: State
     errors: ZodError<State> | null
-    touchedFields: string[]
 }
 
 export type CreateStoreProps<State, Schema> = {
@@ -27,6 +35,21 @@ export type CreateFormProps<State, Schema> = {
 export type Update<S> = S | ((state: S) => S)
 export type Subscriber<S> = (state: S) => void
 export type Selector<S, R> = (state: S) => R
+
+const typedMemo: <A, B>(a: A, B: B) => A = memo;
+
+const track = <S, R>(selector: Selector<S, R>): string[] => {
+    const path: string[] = []
+    const handler: ProxyHandler<any> = {
+        get(_, p) {
+            path.push(p as string)
+            return new Proxy({}, handler)
+        }
+    }
+    const proxy = new Proxy({}, handler)
+    selector(proxy)
+    return path
+}
 
 const setNestedValue = <State,>(obj: State, path: string[], update: Update<State>): State => {
     if (path.length === 0) {
@@ -62,6 +85,23 @@ const getNestedValue = (obj: any, path: string[]): any => {
     return getNestedValue(obj[head], tail);
 }
 
+const createStore = <State,>(initialState: State) => {
+    let state = initialState;
+    const getState = () => state;
+    const subscribers = new Set<Subscriber<State>>();
+    const setState = (update: Update<State>) => {
+        state = update instanceof Function ? update(state) : update
+        subscribers.forEach((l) => l(getState()));
+    };
+
+    const subscribe = (s: Subscriber<State>) => {
+        subscribers.add(s);
+        return () => subscribers.delete(s);
+    };
+
+    return { getState, setState, subscribe };
+};
+
 export const createForm = <
     Schema extends z.ZodSchema,
 >({
@@ -71,39 +111,31 @@ export const createForm = <
     initialState
 }: CreateFormProps<z.infer<Schema>, Schema>) => {
     type State = z.infer<Schema>
-    const storedState = !!localStorage && !!storageKey  ? localStorage.getItem(storageKey) : null
+    const storedState = !!localStorage && !!storageKey ? localStorage.getItem(storageKey) : null
 
-    let store = createStore(storedState ? JSON.parse(storedState) as State : initialState)
-    let _initialState = initialState
+    const store = createStore(storedState ? JSON.parse(storedState) as State : initialState)
+    const metaStore = createStore<Record<string, FieldMetaProps | undefined>>({})
 
-    const reinitialize = (state: State) => {
-        _initialState = state
-        store.setState(state)
-    }
-
-    const reset = () => store.setState(_initialState)
-    const wasModified = () => !equals(_initialState, store.getState())
-    const touchedStore = createStore<string[]>([])
     const parsed = schema.safeParse(initialState)
     let errors: z.ZodError<State> | null = parsed.success ? null : parsed.error
     const getErrors = () => errors;
   
-    type ExternalSubscriberArgs = { state: State; errors: z.ZodError<State> | null; touchedFields: string[] }
+    type SubscriberArg = { state: State; errors: z.ZodError<State> | null; }
 
-    const externalSubscribers = new Set<Subscriber<ExternalSubscriberArgs>>();
+    const subscribers = new Set<Subscriber<SubscriberArg>>();
     store.subscribe((state) => {
         const parsed = schema.safeParse(state)
         errors = parsed.success ? null : parsed.error
-        externalSubscribers.forEach(listener => listener({ state, errors, touchedFields: touchedStore.getState() }))
+        subscribers.forEach(listener => listener({ state, errors }))
         
         if(!!storageKey && !!localStorage) {
             localStorage.setItem(storageKey, JSON.stringify(state))
         }
     })
 
-    const subscribeExternal = (s: Subscriber<ExternalSubscriberArgs>) => {
-        externalSubscribers.add(s);
-        return () => externalSubscribers.delete(s);
+    const subscribe = (s: Subscriber<SubscriberArg>) => {
+        subscribers.add(s);
+        return () => subscribers.delete(s);
     }
 
     const getErrorForPath = (errors: ZodError<State> | null, path: string[]): string[] => {
@@ -127,48 +159,74 @@ export const createForm = <
         return useSyncExternalStore(isSubmitting.subscribe, isSubmitting.getState, isSubmitting.getState)
     }
 
-    const useField = <R,>(selector: Selector<State, R>) => {
+    const focusListeners: Map<string, () => void> = new Map()
+    const focus = <R,>(selector: Selector<State, R>) => {
+        const joinedPath = track(selector).join(".")
+        const listener = focusListeners.get(joinedPath)
+        if(!!listener) {
+            listener()
+        }
+    }
+
+    const useField = <R,>(selector: Selector<State, R>, options?: FieldOptions) => {
         const path = track(selector)
         const joinedPath = path.join(".")
         const errors = getErrorForPath(getErrors(), path);
         const getSnap = useCallback(() => getNestedValue(store.getState(), path) as R, [joinedPath])
-        const getTouchedSnap = useCallback(() => touchedStore.getState().includes(joinedPath), [joinedPath])
+        const getMeta = useCallback(() => {
+            const v = metaStore.getState()[joinedPath]
+            return !!v ? v : undefined
+        }, [joinedPath])
         const value = useSyncExternalStore(store.subscribe, getSnap, getSnap)
-        const wasTouched = useSyncExternalStore(touchedStore.subscribe, getTouchedSnap, getTouchedSnap)
-        const wasModified = useCallback(() => !equals(selector(_initialState), value), [value]) 
-
+        const meta = useSyncExternalStore(metaStore.subscribe, getMeta, getMeta)
         const setValue = useCallback((update: Update<R>) => {
             setFieldValue(selector, update)
         }, [joinedPath])
-        const setWasTouched = useCallback((update: Update<boolean>) => {
-            touchedStore.setState((prevState) => {
-                const prev = prevState.includes(joinedPath)
-                const next = update instanceof Function ? update(prev) : update
 
-                if (next) {
-                    return [...new Set([...prevState, joinedPath])]
-                } else {
-                    return prevState.filter(k => k !== joinedPath)
+        const setMeta = useCallback((update: Update<FieldMetaProps | undefined>) => {
+            metaStore.setState((prev) => {
+                const prevVal = prev[joinedPath]
+                const next = update instanceof Function ? update(prevVal) : update
+                if(
+                    next?.dirty != prevVal?.dirty ||
+                    next?.disabled != prevVal?.disabled || 
+                    next?.loading != prevVal?.loading || 
+                    next?.required != prevVal?.required || 
+                    next?.touched != prevVal?.touched || 
+                    next?.visible != prevVal?.visible
+                ) {
+                    return { ...prev, [joinedPath]: next }
                 }
+
+                return prev
             });
         }, [joinedPath])
+
+        useEffect(() => {
+            if(typeof options?.onFocus === 'function') {
+                focusListeners.set(joinedPath, options.onFocus)
+            }
+            return () => focusListeners.delete(joinedPath)
+        })
+
+        const onFocus = useCallback(() => focus(selector),[joinedPath])
 
         return {
             value,
             setValue,
-            wasTouched,
-            setWasTouched,
             errors,
-            wasModified
+            meta,
+            setMeta,
+            focus: onFocus
         }
     }
 
     type FieldProps<R> = {
         selector: Selector<State, R>
         children: (props: ReturnType<typeof useField<R>>) => JSX.Element
-    }
-    const Field = typedMemo(<R,>({ selector, children }: FieldProps<R>) => {
-        const props = useField(selector)
+    } & FieldOptions
+    const Field = typedMemo(<R,>({ selector, children, onFocus }: FieldProps<R>) => {
+        const props = useField(selector, { onFocus })
         return children(props)
     }, (a: any, b: any) => {
         const trackA = track(a.selector).join("")
@@ -181,8 +239,9 @@ export const createForm = <
         onSubmit({
             state: store.getState(),
             errors: getErrors(),
-            touchedFields: touchedStore.getState()
-        }).finally(() => isSubmitting.setState(false))
+        }).finally(() => {
+            isSubmitting.setState(false)
+        })
     }
 
     return {
@@ -190,16 +249,14 @@ export const createForm = <
         setFieldValue,
         Field,
         getErrors,
-        wasModified,
-        reinitialize,
-        reset,
         useIsSubmitting,
         isSubmitting: isSubmitting.getState,
-        getTouchedFields: touchedStore.getState,
-        setTouchedFields: touchedStore.setState,
+        getMetaState: metaStore.getState,
+        setMetaState: metaStore.setState,
         getState: store.getState,
         setState: store.setState,
-        subscribe: subscribeExternal,
+        subscribe,
+        focus,
         submit
     }
 }
