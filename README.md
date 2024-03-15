@@ -192,15 +192,23 @@ const { setState } = createForm({ ... });
 
 // usage
 setState({
-  username: "pureliani",
-  email: "invalid@gmailcom",
-  contactPhones: [""]
+  a: {
+    b: {
+      c: "C"
+    }
+  },
+  d: {
+    e: {
+      f: "F"
+    }
+  },
+  numbers: [0, 1, 2, 3, 4, 5],
+  focusable: "Focusable"
 })
 // or
 setState((prevState) => ({
-  username: "pureliani",
-  email: "valid@gmail.com",
-  contactPhones: [...prevState.contactPhones, ""]
+  ...prevState
+  numbers: [...prevState.numbers, 6, 7, 8, 9],
 }))
 ```
 
@@ -209,9 +217,9 @@ setState((prevState) => ({
 const { setFieldValue } = createForm({ ... });
 
 // usage
-setFieldValue(state => state.email, "example@gmail.com")
+setFieldValue(state => state.a.b.c, "value c")
 // or
-setFieldValue(state => state.email, prevValue => prevValue + "something")
+setFieldValue(state => state.a.b.c, prevValue => prevValue + "something")
 ```
 
 ### Example - getState
@@ -221,9 +229,18 @@ const { getState } = createForm({ ... });
 // usage
 const state = getState()
 // {
-//   username: "",
-//   email: "example@gmail.comsomething",
-//   contactPhones: [""]
+//   a: {
+//     b: {
+//       c: "C"
+//     }
+//   },
+//   d: {
+//     e: {
+//       f: "F"
+//     }
+//   },
+//   numbers: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+//   focusable: "Focusable"
 // }  
 ```
 
@@ -266,7 +283,7 @@ setMetaState({
 // or
 setTouchedFields(prev => ({
   ...prev,
-    "a.b.c": {
+  "a.b.c": {
     touched: false,
     dirty: false,
     disabled: false,
@@ -274,7 +291,7 @@ setTouchedFields(prev => ({
     loading: false,
     required: false,
   },
-   "d.e.f": {
+  "d.e.f": {
     touched: false,
     dirty: false,
     disabled: false,
@@ -300,10 +317,9 @@ console.log(metaState['d.e.f'])
 const { subscribe } = createForm({ ... });
 
 // usage
-const unsubscribe = subscribe(({ state, errors, touchedFields }) => {
+const unsubscribe = subscribe(({ state, errors }) => {
   console.log("state", state)
   console.log("errors", errors)
-  console.log("touchedFields", touchedFields)
 })
 // later...
 unsubscribe()
